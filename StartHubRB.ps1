@@ -1,23 +1,8 @@
+#if not logged in to Azure, start login
+if ((Get-AzureRmContext).Account -eq $Null) {
+    Login-AzureRmAccount -Environment AzureUSGovernment}
+
 <#
-$AzureAutomationAccount = "Privileged-Automation-Account"
-$AzureAutomationAccountRG = "CORE-INT-EAST-PRIVILEGED-RG"
-$AzureAutomationAccountSub = "CORE-GOV-INTERNAL"
-$RBName = "AzureDiskTransferV1_0_0”  
-$Params = @{
-    "resourceGroupName"=$($resourceGroupName) 
-    "URI"=$($URI) 
-    "SubscriptionName"=$($subscriptionName) 
-    "destinationVHDFileName"=$destinationVHDFileName 
-    "SnapshotName"=$SnapshotName
-    "StorageAccountName"=$StorageAccountName
-    "StorageAccountKey"=$StorageAccountKey
-    }
-    
-    $Params
-    $RBJob = start-azurermautomationrunbook  -AutomationAccountName $AzureAutomationAccount -name $RBname -resourceGroupName $AzureAutomationAccountRG -parameters $params
-
-    #>
-
 $SubConfig = @(
     @{
         SubscriptionID = "ed347077-d367-4401-af11-a87b73bbae0e"
@@ -30,9 +15,8 @@ $SubConfig = @(
         # ExcludeVM = "MoveTest2-RG"
     }
 )
+#>
 
-
-<#
 $SubConfig = @(
     @{
         SubscriptionID = "ed347077-d367-4401-af11-a87b73bbae0e"
@@ -40,7 +24,7 @@ $SubConfig = @(
         #ExcludeVM = "F5Jumpbox","RP-AD","TargetVM"
     }
 )
-#>
+
 
 Get-Job | Remove-Job
 
@@ -120,15 +104,16 @@ foreach ($SubConfigItem in $SubConfig) {
         } # RGVM
 
         $RGVMs = $Results
+        
+        #$RGVMs | Where-Object { !$_.HubExcluded } | 
+        $RGVMs | Where-Object { !$_.HubExcluded -and $_.LicenseType -eq $Null } | 
 
-        #$RGVMs | Where-Object { !$_.HubExcluded -and $_.LicenseType -eq $Null } | 
-        $RGVMs | Where-Object { !$_.HubExcluded } | 
             ForEach-Object {
                     Write-Host "Setting Hub for $($_.Name)..." 
                     
                     $TargetVM = Get-AzureRmVM -ResourceGroupName $SubRG.ResourceGroupName -Name $_.Name
                     $TargetVM.LicenseType = "Windows_Server"
-                    Update-AzureRmVM -ResourceGroupName $SubRG.ResourceGroupName -VM $TargetVM -AsJob
+                    Update-AzureRmVM -ResourceGroupName $SubRG.ResourceGroupName -VM $TargetVM -WhatIf
             } 
 
         Write-Output "Waiting for this $($SubRG.ResourceGroupName)'s jobs to complete..."
