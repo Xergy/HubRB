@@ -133,7 +133,7 @@ foreach ($SubConfigItem in $SubConfig) {
 
         Write-Output "Waiting for this $($SubRG.ResourceGroupName)'s jobs to complete..."
         get-job | Wait-Job
-        Write-Output "Done!"
+        Write-Output "Done with this RGs VMs!"
         Get-Job | Remove-Job
 
     } # SubRG
